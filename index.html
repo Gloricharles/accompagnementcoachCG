@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BeGlorious — Coach Sync</title>
+<style>
+  :root{
+    --bg:#0D0D0D; --bg-raised:#161616; --bg-card:#1A1A1A; --line:#2A2A2A;
+    --accent:#C8FF00; --accent-dim:#8FB300; --text:#F2F2F0; --text-dim:#9A9A94;
+    --danger:#FF5C5C;
+    --font-display: 'Segoe UI', -apple-system, system-ui, sans-serif;
+    --font-mono: 'SF Mono', 'Consolas', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);}
+  body{color:var(--text);font-family:var(--font-display);}
+  .shell{max-width:720px;margin:0 auto;padding:20px 18px 60px;}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-mark{width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:var(--accent);flex-shrink:0;}
+  .brand-word{font-weight:800;letter-spacing:0.5px;font-size:15px;}
+  .brand-sub{font-size:10.5px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px;}
+
+  .signal{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-dim);cursor:pointer;}
+  .dot{width:7px;height:7px;border-radius:50%;background:#555;}
+  .dot.live{background:var(--accent);animation:pulse 2s infinite;}
+  .dot.off{background:var(--danger);}
+  .dot.busy{background:#E8B923;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(200,255,0,0.45);}70%{box-shadow:0 0 0 6px rgba(200,255,0,0);}100%{box-shadow:0 0 0 0 rgba(200,255,0,0);}}
+
+  .tabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid var(--line);}
+  .tab{flex:1;text-align:center;padding:10px 4px;font-size:12.5px;font-weight:600;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;user-select:none;}
+  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+  .tab:hover{color:var(--text);}
+
+  .view{display:none;} .view.active{display:block;}
+
+  label{display:block;font-size:11.5px;color:var(--text-dim);margin:14px 0 6px;text-transform:uppercase;letter-spacing:0.6px;}
+  label:first-child{margin-top:0;}
+  select, input[type=text], input[type=date], textarea{
+    width:100%;background:var(--bg-raised);border:1px solid var(--line);color:var(--text);
+    padding:11px 12px;border-radius:8px;font-size:14.5px;font-family:var(--font-display);outline:none;
+  }
+  select:focus, input:focus, textarea:focus{border-color:var(--accent);}
+  textarea{resize:vertical;min-height:70px;}
+  ::placeholder{color:#5c5c58;}
+
+  .score-row{display:flex;align-items:center;gap:14px;}
+  input[type=range]{flex:1;accent-color:var(--accent);}
+  .score-val{font-family:var(--font-mono);font-size:22px;font-weight:700;color:var(--accent);width:46px;text-align:right;}
+
+  .check-row{display:flex;align-items:center;gap:9px;margin-top:14px;padding:10px 12px;background:var(--bg-raised);border-radius:8px;border:1px solid var(--line);}
+  .check-row input{width:16px;height:16px;accent-color:var(--danger);}
+  .check-row span{font-size:13px;}
+
+  .btn{margin-top:20px;width:100%;background:var(--accent);color:#0D0D0D;border:none;padding:13px;border-radius:8px;font-weight:800;font-size:14px;cursor:pointer;letter-spacing:0.3px;}
+  .btn:active{transform:scale(0.98);}
+  .btn.secondary{background:transparent;color:var(--accent);border:1px solid var(--accent);}
+
+  .card{background:var(--bg-card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px;}
+  .card-title{font-weight:800;font-size:16px;margin-bottom:2px;}
+  .card-meta{font-size:11.5px;color:var(--text-dim);}
+  .field-block{margin-top:12px;}
+  .field-label{font-size:10.5px;text-transform:uppercase;letter-spacing:0.6px;color:var(--text-dim);margin-bottom:3px;}
+  .field-value{font-size:13.5px;line-height:1.5;}
+
+  .session-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);gap:10px;}
+  .session-row:first-child{border-top:none;}
+  .session-date{font-family:var(--font-mono);font-size:11.5px;color:var(--text-dim);width:64px;flex-shrink:0;}
+  .session-mid{flex:1;}
+  .session-title{font-size:13.5px;font-weight:600;}
+  .session-remark{font-size:12px;color:var(--text-dim);margin-top:2px;}
+  .session-score{font-family:var(--font-mono);font-weight:800;font-size:16px;color:var(--accent);width:28px;text-align:right;flex-shrink:0;}
+  .flag{display:inline-block;background:var(--danger);color:#0D0D0D;font-size:9.5px;font-weight:800;padding:2px 6px;border-radius:5px;margin-left:6px;letter-spacing:0.3px;}
+
+  .empty{text-align:center;color:var(--text-dim);font-size:13px;padding:40px 10px;}
+  .empty b{color:var(--text);}
+
+  .client-list-item{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg-card);border:1px solid var(--line);border-radius:10px;margin-bottom:8px;cursor:pointer;}
+  .client-list-item:hover{border-color:var(--accent-dim);}
+  .client-name{font-weight:700;font-size:14px;}
+  .client-obj{font-size:11.5px;color:var(--text-dim);margin-top:2px;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .chev{color:var(--text-dim);font-size:16px;}
+
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--accent);color:#0D0D0D;padding:10px 18px;border-radius:20px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:opacity .25s, bottom .25s;box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+  .toast.show{opacity:1;bottom:26px;}
+
+  .section-note{font-size:12px;color:var(--text-dim);line-height:1.6;margin-top:16px;padding:12px;background:var(--bg-raised);border-radius:8px;border:1px solid var(--line);}
+  .back-link{color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer;margin-bottom:14px;display:inline-block;}
+  .config-warn{background:#2A1A00;border:1px solid #5C3D00;color:#E8B923;padding:12px;border-radius:8px;font-size:12.5px;margin-bottom:16px;line-height:1.6;}
+</style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-mark">G</div>
+        <div>
+          <div class="brand-word">BEGLORIOUS</div>
+          <div class="brand-sub">Coach Sync</div>
+        </div>
+      </div>
+      <div class="signal" id="signalWrap" title="Cliquer pour rafraîchir">
+        <span id="signalText">chargement…</span>
+        <div class="dot busy" id="signalDot"></div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-view="briefing">Avant séance</div>
+      <div class="tab" data-view="logger">Logger</div>
+      <div class="tab" data-view="clients">Clients</div>
+      <div class="tab" data-view="settings">Réglages</div>
+    </div>
+
+    <div class="view active" id="view-briefing">
+      <label>Client</label>
+      <select id="briefingSelect"></select>
+      <div id="briefingContent"></div>
+    </div>
+
+    <div class="view" id="view-logger">
+      <label>Client</label>
+      <select id="logClient"></select>
+      <label>Date</label>
+      <input type="date" id="logDate">
+      <label>Entraînement du jour</label>
+      <input type="text" id="logEntrainement" placeholder="ex : Force haut du corps + engine 20min">
+      <label>Score de la séance <span style="text-transform:none;color:var(--text-dim);">— performance / exécution par rapport à l'entraînement prévu</span></label>
+      <div class="score-row">
+        <input type="range" id="logScore" min="0" max="10" value="7">
+        <div class="score-val" id="logScoreVal">7</div>
+      </div>
+      <label>Remarques</label>
+      <textarea id="logRemarques" placeholder="Notes, ressenti, ajustements, objectifs..."></textarea>
+      <div class="check-row">
+        <input type="checkbox" id="logBlessure">
+        <span>Signaler une blessure / un point d'attention particulier</span>
+      </div>
+      <button class="btn" id="saveSessionBtn">Enregistrer la séance</button>
+    </div>
+
+    <div class="view" id="view-clients">
+      <div id="clientForm" style="display:none;">
+        <span class="back-link" id="backToList">← Retour à la liste</span>
+        <label>Nom</label>
+        <input type="text" id="cNom" placeholder="Nom du client">
+        <label>Date de début</label>
+        <input type="date" id="cDateDebut">
+        <label>Avatar / profil</label>
+        <input type="text" id="cAvatar" placeholder="ex : Hybrid endurance, Force pure, Reprise...">
+        <label>Objectifs actuels</label>
+        <textarea id="cObjectifs" placeholder="Objectifs de performance, composition, bien-être..."></textarea>
+        <label>Notes générales</label>
+        <textarea id="cNotes" placeholder="Contexte, historique, contraintes..."></textarea>
+        <button class="btn" id="saveClientBtn">Enregistrer le client</button>
+      </div>
+      <div id="clientListWrap">
+        <button class="btn secondary" id="newClientBtn">+ Nouveau client</button>
+        <div id="clientList" style="margin-top:16px;"></div>
+      </div>
+    </div>
+
+    <div class="view" id="view-settings">
+      <div id="configWarnWrap"></div>
+      <div class="section-note">
+        L'URL de synchronisation est définie une fois pour toutes dans le fichier (variable <code>SCRIPT_URL</code> en haut du script). Elle est donc identique sur tous tes appareils — rien à ressaisir.
+      </div>
+      <button class="btn secondary" id="refreshBtn" style="margin-top:16px;">Rafraîchir les données depuis le Sheet</button>
+      <div class="section-note" id="lastSyncNote" style="margin-top:12px;"></div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  // ==== CONFIGURATION ====
+  // Colle ici l'URL /exec de ton déploiement Google Apps Script (voir GUIDE.md).
+  const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
+  // ========================
+
+  const $ = (id) => document.getElementById(id);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  const CACHE_KEY = 'beglorious_coach_cache_v1';
+
+  let state = { clients: {}, roster: [] };
+  let editingClientId = null;
+  let lastSync = null;
+
+  function showToast(msg){
+    const t = $('toast'); t.textContent = msg; t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'), 2200);
+  }
+
+  function setSignal(mode, label){
+    $('signalDot').className = 'dot ' + mode;
+    $('signalText').textContent = label;
+  }
+
+  function isConfigured(){
+    return SCRIPT_URL && SCRIPT_URL.indexOf('PASTE_') === -1;
+  }
+
+  // ---------- JSONP ----------
+  function jsonp(url){
+    return new Promise((resolve, reject) => {
+      const cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*1e6);
+      const script = document.createElement('script');
+      window[cbName] = (data) => {
+        resolve(data);
+        delete window[cbName];
+        script.remove();
+      };
+      script.onerror = () => { reject(new Error('jsonp failed')); delete window[cbName]; script.remove(); };
+      script.src = url + (url.indexOf('?') > -1 ? '&' : '?') + 'callback=' + cbName + '&_=' + Date.now();
+      document.body.appendChild(script);
+      setTimeout(() => {
+        if(window[cbName]){ reject(new Error('jsonp timeout')); delete window[cbName]; script.remove(); }
+      }, 12000);
+    });
+  }
+
+  // ---------- Cache local (juste pour un affichage instantané, pas la source de vérité) ----------
+  function paintFromCache(){
+    try{
+      const raw = localStorage.getItem(CACHE_KEY);
+      if(!raw) return;
+      applyData(JSON.parse(raw), true);
+    }catch(e){}
+  }
+  function writeCache(data){
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify(data)); }catch(e){}
+  }
+
+  function applyData(data, fromCache){
+    state.clients = {};
+    state.roster = [];
+    (data.clients || []).forEach(c => {
+      state.roster.push({ id: c.id, nom: c.nom });
+      state.clients[c.id] = { profile: c, sessions: [] };
+    });
+    (data.sessions || []).forEach(s => {
+      if(!state.clients[s.clientId]){
+        state.clients[s.clientId] = { profile: { id: s.clientId, nom: s.clientNom }, sessions: [] };
+        state.roster.push({ id: s.clientId, nom: s.clientNom });
+      }
+      state.clients[s.clientId].sessions.push(s);
+    });
+    renderClientSelects();
+    renderClientList();
+    renderBriefing();
+    if(!fromCache) writeCache(data);
+  }
+
+  async function refreshFromSheet(showBusy){
+    if(!isConfigured()){
+      setSignal('off', 'URL non configurée');
+      renderConfigWarn();
+      return;
+    }
+    if(showBusy) setSignal('busy', 'synchro…');
+    try{
+      const data = await jsonp(SCRIPT_URL);
+      applyData(data, false);
+      lastSync = new Date();
+      setSignal('live', 'à jour');
+      $('lastSyncNote').textContent = 'Dernière synchro : ' + lastSync.toLocaleTimeString('fr-BE');
+    }catch(e){
+      setSignal('off', 'échec de lecture');
+      showToast("Impossible de lire le Sheet — vérifie la connexion");
+    }
+  }
+
+  function renderConfigWarn(){
+    $('configWarnWrap').innerHTML = isConfigured() ? '' :
+      `<div class="config-warn">⚠️ Aucune URL Google Apps Script configurée. Ouvre le fichier et remplace <code>SCRIPT_URL</code> en haut du script par l'URL de ton déploiement (voir GUIDE.md).</div>`;
+  }
+
+  function syncWrite(payload){
+    if(!isConfigured()) return;
+    try{ fetch(SCRIPT_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(payload) }); }catch(e){}
+  }
+
+  function escapeHtml(s){
+    return (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+
+  // ---------- Renders ----------
+  function renderClientSelects(){
+    const opts = state.roster.length
+      ? state.roster.map(c => `<option value="${c.id}">${escapeHtml(c.nom)}</option>`).join('')
+      : `<option value="">Aucun client — ajoute-en un dans l'onglet Clients</option>`;
+    $('briefingSelect').innerHTML = opts;
+    $('logClient').innerHTML = opts;
+  }
+
+  function renderBriefing(){
+    const id = $('briefingSelect').value;
+    const wrap = $('briefingContent');
+    const data = state.clients[id];
+    if(!data){
+      wrap.innerHTML = `<div class="empty">Sélectionne un client pour voir son <b>résumé avant séance</b>.</div>`;
+      return;
+    }
+    const p = data.profile;
+    const sessions = [...data.sessions].sort((a,b)=> (b.date||'').localeCompare(a.date||'')).slice(0,6);
+    const lastFlag = sessions.find(s=>s.blessureFlag);
+
+    let html = `<div class="card">
+      <div class="card-title">${escapeHtml(p.nom)}</div>
+      <div class="card-meta">${p.avatar ? escapeHtml(p.avatar) : 'Profil non renseigné'} · suivi depuis ${p.dateDebut || '—'}</div>`;
+    if(lastFlag){
+      html += `<div class="field-block"><span class="flag">POINT D'ATTENTION</span>
+        <div class="field-value" style="margin-top:6px;">${escapeHtml(lastFlag.remarques || 'Signalé le '+lastFlag.date)}</div></div>`;
+    }
+    html += `<div class="field-block"><div class="field-label">Objectifs actuels</div>
+      <div class="field-value">${escapeHtml(p.objectifs) || '—'}</div></div>`;
+    if(p.notesGenerales){
+      html += `<div class="field-block"><div class="field-label">Notes générales</div>
+        <div class="field-value">${escapeHtml(p.notesGenerales)}</div></div>`;
+    }
+    html += `</div><div class="card"><div class="card-title" style="font-size:13px;">Dernières séances</div>`;
+    if(sessions.length === 0){
+      html += `<div class="empty">Aucune séance enregistrée pour le moment.</div>`;
+    } else {
+      for(const s of sessions){
+        html += `<div class="session-row">
+          <div class="session-date">${s.date}</div>
+          <div class="session-mid">
+            <div class="session-title">${escapeHtml(s.entrainement)}${s.blessureFlag ? '<span class="flag">!</span>' : ''}</div>
+            ${s.remarques ? `<div class="session-remark">${escapeHtml(s.remarques)}</div>` : ''}
+          </div>
+          <div class="session-score">${s.score}</div>
+        </div>`;
+      }
+    }
+    html += `</div>`;
+    wrap.innerHTML = html;
+  }
+
+  function renderClientList(){
+    const wrap = $('clientList');
+    if(state.roster.length === 0){
+      wrap.innerHTML = `<div class="empty">Aucun client pour le moment.<br><b>Ajoute ton premier client</b> pour commencer.</div>`;
+      return;
+    }
+    wrap.innerHTML = state.roster.map(c => {
+      const d = state.clients[c.id];
+      const obj = d && d.profile.objectifs ? d.profile.objectifs : 'Objectifs non renseignés';
+      return `<div class="client-list-item" data-id="${c.id}">
+        <div><div class="client-name">${escapeHtml(c.nom)}</div><div class="client-obj">${escapeHtml(obj)}</div></div>
+        <div class="chev">›</div></div>`;
+    }).join('');
+    wrap.querySelectorAll('.client-list-item').forEach(el=>{
+      el.addEventListener('click', () => openClientForm(el.dataset.id));
+    });
+  }
+
+  function openClientForm(id){
+    editingClientId = id || null;
+    const d = id ? state.clients[id] : null;
+    $('cNom').value = d ? d.profile.nom : '';
+    $('cDateDebut').value = d ? (d.profile.dateDebut || '') : new Date().toISOString().slice(0,10);
+    $('cAvatar').value = d ? (d.profile.avatar || '') : '';
+    $('cObjectifs').value = d ? (d.profile.objectifs || '') : '';
+    $('cNotes').value = d ? (d.profile.notesGenerales || '') : '';
+    $('clientForm').style.display = 'block';
+    $('clientListWrap').style.display = 'none';
+  }
+
+  $('newClientBtn').addEventListener('click', () => openClientForm(null));
+  $('backToList').addEventListener('click', () => {
+    $('clientForm').style.display = 'none';
+    $('clientListWrap').style.display = 'block';
+  });
+
+  $('saveClientBtn').addEventListener('click', () => {
+    const nom = $('cNom').value.trim();
+    if(!nom){ showToast('Le nom du client est requis'); return; }
+    const id = editingClientId || uid();
+    const profile = {
+      id, nom, dateDebut: $('cDateDebut').value, avatar: $('cAvatar').value.trim(),
+      objectifs: $('cObjectifs').value.trim(), notesGenerales: $('cNotes').value.trim()
+    };
+    if(!state.clients[id]){ state.clients[id] = { profile, sessions: [] }; state.roster.push({id, nom}); }
+    else { state.clients[id].profile = profile; const r = state.roster.find(c=>c.id===id); if(r) r.nom = nom; }
+
+    syncWrite({ type:'client', ...profile });
+    renderClientSelects(); renderClientList(); renderBriefing();
+    $('clientForm').style.display = 'none';
+    $('clientListWrap').style.display = 'block';
+    showToast('Client enregistré — synchro en cours');
+    setTimeout(()=>refreshFromSheet(false), 2500);
+  });
+
+  $('logScore').addEventListener('input', () => { $('logScoreVal').textContent = $('logScore').value; });
+
+  $('saveSessionBtn').addEventListener('click', () => {
+    const clientId = $('logClient').value;
+    if(!clientId){ showToast('Sélectionne un client'); return; }
+    const entrainement = $('logEntrainement').value.trim();
+    if(!entrainement){ showToast("Décris l'entraînement du jour"); return; }
+
+    const session = {
+      sessionId: uid(),
+      date: $('logDate').value || new Date().toISOString().slice(0,10),
+      entrainement, score: parseInt($('logScore').value, 10),
+      remarques: $('logRemarques').value.trim(), blessureFlag: $('logBlessure').checked
+    };
+    if(!state.clients[clientId]) state.clients[clientId] = { profile:{id:clientId}, sessions:[] };
+    state.clients[clientId].sessions.push(session);
+    const clientNom = state.clients[clientId].profile.nom || '';
+    syncWrite({ type:'session', clientId, clientNom, ...session });
+
+    $('logEntrainement').value=''; $('logRemarques').value=''; $('logBlessure').checked=false;
+    $('logScore').value=7; $('logScoreVal').textContent='7';
+    renderBriefing();
+    showToast('Séance enregistrée — synchro en cours');
+    setTimeout(()=>refreshFromSheet(false), 2500);
+  });
+
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+      tab.classList.add('active');
+      $('view-'+tab.dataset.view).classList.add('active');
+      if(tab.dataset.view === 'settings') renderConfigWarn();
+    });
+  });
+
+  $('briefingSelect').addEventListener('change', renderBriefing);
+  $('refreshBtn').addEventListener('click', () => refreshFromSheet(true));
+  $('signalWrap').addEventListener('click', () => refreshFromSheet(true));
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) refreshFromSheet(false); });
+
+  $('logDate').value = new Date().toISOString().slice(0,10);
+  renderConfigWarn();
+  paintFromCache();
+  refreshFromSheet(true);
+})();
+</script>
+</body>
+</html>
