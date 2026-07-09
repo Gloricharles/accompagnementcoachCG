@@ -135,3 +135,23 @@ La colonne `Lien Sheet (extraction)` a été ajoutée en colonne I de l'onglet
 `Clients`. Comme pour la v3, ajoute manuellement l'en-tête si l'onglet
 existait déjà, recolle `Code.gs` dans Apps Script, et publie une **nouvelle
 version** du déploiement.
+
+## Photo de séance (v5)
+
+Le Logger a un champ **Photo** optionnel (tableau blanc, carnet...). Elle est
+prise directement avec l'appareil photo du téléphone, redimensionnée dans le
+navigateur (pour rester légère), puis envoyée avec la séance. Le script la
+dépose dans un dossier Drive dédié — **BeGlorious Coach Sync — Photos
+séances** — créé automatiquement au premier envoi, et enregistre le lien
+dans une nouvelle colonne `Photo` de l'onglet `Séances`. Ce dossier reste
+privé (accessible uniquement depuis ton propre compte Google), aucune
+publication n'est nécessaire pour cette fonctionnalité. Le lien apparaît
+ensuite en 📷 à côté de la séance concernée dans l'onglet **Avant séance**.
+
+**Important** : cette version demande une nouvelle autorisation (accès à
+Drive, en plus de Sheets). Au premier envoi d'une photo (ou au redéploiement
+du script), Google va probablement redemander une confirmation d'accès —
+c'est normal, accepte comme la première fois.
+
+Recolle `Code.gs` dans Apps Script et publie une **nouvelle version** du
+déploiement comme pour les mises à jour précédentes.

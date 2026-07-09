@@ -18,11 +18,15 @@ function doPost(e) {
     upsertClientRow_(sheet, data);
   } else if (data.type === "session") {
     var sheet2 = getOrCreateSheet_(ss, "Séances", [
-      "ID séance", "ID client", "Nom client", "Date", "Entraînement", "Score", "Remarques", "Blessure ?", "Horodatage"
+      "ID séance", "ID client", "Nom client", "Date", "Entraînement", "Score", "Remarques", "Blessure ?", "Horodatage", "Photo"
     ]);
+    var photoUrl = "";
+    if (data.photoBase64) {
+      photoUrl = savePhotoToDrive_(data.photoBase64, data.photoMimeType, data.clientNom, data.date, data.sessionId);
+    }
     sheet2.appendRow([
       data.sessionId, data.clientId, data.clientNom, data.date, data.entrainement,
-      data.score, data.remarques || "", data.blessureFlag ? "OUI" : "", new Date()
+      data.score, data.remarques || "", data.blessureFlag ? "OUI" : "", new Date(), photoUrl
     ]);
   }
 
@@ -71,7 +75,8 @@ function doGet(e) {
         entrainement: sv[j][4],
         score: sv[j][5],
         remarques: sv[j][6],
-        blessureFlag: sv[j][7] === "OUI"
+        blessureFlag: sv[j][7] === "OUI",
+        photoUrl: sv[j][9] || ""
       });
     }
   }
@@ -140,6 +145,28 @@ function readSheetAsText_(id) {
   }
   var text = lines.join("\n");
   return text.length > 6000 ? text.slice(0, 6000) + "\n… (tronqué)" : text;
+}
+
+function savePhotoToDrive_(base64, mimeType, clientNom, date, sessionId) {
+  try {
+    var folder = getOrCreatePhotosFolder_();
+    var bytes = Utilities.base64Decode(base64);
+    var type = mimeType || "image/jpeg";
+    var ext = type.indexOf("png") > -1 ? "png" : "jpg";
+    var name = (clientNom || "client") + "_" + (date || "") + "_" + sessionId + "." + ext;
+    var blob = Utilities.newBlob(bytes, type, name);
+    var file = folder.createFile(blob);
+    return file.getUrl();
+  } catch (err) {
+    return "";
+  }
+}
+
+function getOrCreatePhotosFolder_() {
+  var name = "BeGlorious Coach Sync — Photos séances";
+  var it = DriveApp.getFoldersByName(name);
+  if (it.hasNext()) return it.next();
+  return DriveApp.createFolder(name);
 }
 
 function formatDate_(v) {
