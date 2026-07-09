@@ -136,7 +136,7 @@
       <label>Date</label>
       <input type="date" id="logDate">
       <label>Entraînement du jour</label>
-      <input type="text" id="logEntrainement" placeholder="ex : Force haut du corps + engine 20min">
+      <textarea id="logEntrainement" placeholder="ex : Force haut du corps + engine 20min" style="min-height:44px;"></textarea>
       <label>Score de la séance <span style="text-transform:none;color:var(--text-dim);">— performance / exécution par rapport à l'entraînement prévu</span></label>
       <div class="score-row">
         <input type="range" id="logScore" min="0" max="10" value="7">
@@ -164,8 +164,10 @@
         <textarea id="cObjectifs" placeholder="Objectifs de performance, composition, bien-être..."></textarea>
         <label>Notes générales</label>
         <textarea id="cNotes" placeholder="Contexte, historique, contraintes..."></textarea>
-        <label>Lien programmation <span style="text-transform:none;color:var(--text-dim);">— Sheet du client, publié via Fichier → Partager → Publier sur le Web</span></label>
+        <label>Lien programmation <span style="text-transform:none;color:var(--text-dim);">— Sheet du client, publié via Fichier → Partager → Publier sur le Web (affiché dans l'onglet Programmation)</span></label>
         <input type="text" id="cProgrammation" placeholder="https://docs.google.com/spreadsheets/d/e/.../pubhtml">
+        <label>Lien Sheet (extraction) <span style="text-transform:none;color:var(--text-dim);">— lien normal d'édition, reste privé, sert uniquement à extraire le texte</span></label>
+        <input type="text" id="cProgrammationEdit" placeholder="https://docs.google.com/spreadsheets/d/.../edit?usp=sharing">
         <button class="btn" id="saveClientBtn">Enregistrer le client</button>
       </div>
       <div id="clientListWrap">
@@ -313,16 +315,61 @@
     const id = $('programmationSelect').value;
     const wrap = $('programmationContent');
     const data = state.clients[id];
-    const url = data && data.profile.programmationUrl;
     if(!data){
       wrap.innerHTML = `<div class="empty">Sélectionne un client pour voir sa <b>programmation</b>.</div>`;
       return;
     }
+    const url = data.profile.programmationUrl;
+    const editUrl = data.profile.programmationEditUrl;
+
+    let html = '';
     if(!url || !/^https:\/\/docs\.google\.com\//.test(url)){
-      wrap.innerHTML = `<div class="empty">Aucun lien de programmation pour <b>${escapeHtml(data.profile.nom)}</b>.<br>Ajoute-le dans l'onglet Clients (fiche du client → « Lien programmation »).</div>`;
-      return;
+      html += `<div class="empty">Aucun lien de programmation pour <b>${escapeHtml(data.profile.nom)}</b>.<br>Ajoute-le dans l'onglet Clients (fiche du client → « Lien programmation »).</div>`;
+    } else {
+      html += `<iframe class="programmation-frame" src="${escapeHtml(url)}" loading="lazy"></iframe>`;
     }
-    wrap.innerHTML = `<iframe class="programmation-frame" src="${escapeHtml(url)}" loading="lazy"></iframe>`;
+
+    if(editUrl){
+      html += `<button class="btn secondary" id="extractProgBtn" style="margin-top:16px;">Extraire le texte</button>
+        <textarea id="extractProgText" style="display:none;min-height:140px;margin-top:12px;" placeholder="Le texte extrait apparaîtra ici..."></textarea>
+        <button class="btn" id="sendToLoggerBtn" style="display:none;">Envoyer vers Logger</button>`;
+    }
+    wrap.innerHTML = html;
+
+    if(editUrl){
+      $('extractProgBtn').addEventListener('click', () => extractProgrammation(id, editUrl));
+      $('sendToLoggerBtn').addEventListener('click', () => sendExtractToLogger(id));
+    }
+  }
+
+  async function extractProgrammation(clientId, editUrl){
+    if(!isConfigured()) return;
+    const btn = $('extractProgBtn');
+    const area = $('extractProgText');
+    btn.textContent = 'Extraction en cours…';
+    btn.disabled = true;
+    try{
+      const url = SCRIPT_URL + '?action=extractProgrammation&sheetUrl=' + encodeURIComponent(editUrl);
+      const data = await jsonp(url);
+      if(data.error){
+        showToast(data.error);
+      } else {
+        area.value = data.text || '(vide)';
+        area.style.display = 'block';
+        $('sendToLoggerBtn').style.display = 'block';
+      }
+    }catch(e){
+      showToast("Échec de l'extraction — vérifie la connexion");
+    }
+    btn.textContent = 'Extraire le texte';
+    btn.disabled = false;
+  }
+
+  function sendExtractToLogger(clientId){
+    const text = $('extractProgText').value;
+    document.querySelector('.tab[data-view="logger"]').click();
+    $('logClient').value = clientId;
+    $('logEntrainement').value = text;
   }
 
   function renderBriefing(){
@@ -396,6 +443,7 @@
     $('cObjectifs').value = d ? (d.profile.objectifs || '') : '';
     $('cNotes').value = d ? (d.profile.notesGenerales || '') : '';
     $('cProgrammation').value = d ? (d.profile.programmationUrl || '') : '';
+    $('cProgrammationEdit').value = d ? (d.profile.programmationEditUrl || '') : '';
     $('clientForm').style.display = 'block';
     $('clientListWrap').style.display = 'none';
   }
@@ -413,7 +461,8 @@
     const profile = {
       id, nom, dateDebut: $('cDateDebut').value, avatar: $('cAvatar').value.trim(),
       objectifs: $('cObjectifs').value.trim(), notesGenerales: $('cNotes').value.trim(),
-      programmationUrl: $('cProgrammation').value.trim()
+      programmationUrl: $('cProgrammation').value.trim(),
+      programmationEditUrl: $('cProgrammationEdit').value.trim()
     };
     if(!state.clients[id]){ state.clients[id] = { profile, sessions: [] }; state.roster.push({id, nom}); }
     else { state.clients[id].profile = profile; const r = state.roster.find(c=>c.id===id); if(r) r.nom = nom; }

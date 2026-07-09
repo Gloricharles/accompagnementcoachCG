@@ -13,7 +13,7 @@ function doPost(e) {
 
   if (data.type === "client") {
     var sheet = getOrCreateSheet_(ss, "Clients", [
-      "ID", "Nom", "Date début", "Avatar / profil", "Objectifs actuels", "Notes générales", "Dernière MAJ", "Lien programmation"
+      "ID", "Nom", "Date début", "Avatar / profil", "Objectifs actuels", "Notes générales", "Dernière MAJ", "Lien programmation", "Lien Sheet (extraction)"
     ]);
     upsertClientRow_(sheet, data);
   } else if (data.type === "session") {
@@ -36,6 +36,10 @@ function doGet(e) {
   var clientsSheet = ss.getSheetByName("Clients");
   var sessionsSheet = ss.getSheetByName("Séances");
 
+  if (e.parameter && e.parameter.action === "extractProgrammation") {
+    return handleExtractProgrammation_(e, clientsSheet);
+  }
+
   var clients = [];
   if (clientsSheet) {
     var cv = clientsSheet.getDataRange().getValues();
@@ -48,7 +52,8 @@ function doGet(e) {
         avatar: cv[i][3],
         objectifs: cv[i][4],
         notesGenerales: cv[i][5],
-        programmationUrl: cv[i][7] || ""
+        programmationUrl: cv[i][7] || "",
+        programmationEditUrl: cv[i][8] || ""
       });
     }
   }
@@ -83,6 +88,60 @@ function doGet(e) {
   return ContentService.createTextOutput(payload).setMimeType(ContentService.MimeType.JSON);
 }
 
+function handleExtractProgrammation_(e, clientsSheet) {
+  var url = (e.parameter && e.parameter.sheetUrl) || "";
+  var result;
+  try {
+    var id = extractSheetId_(url);
+    if (!id || !isKnownProgrammationSheet_(clientsSheet, id)) {
+      result = { error: "Lien non reconnu — vérifie qu'il correspond au « Lien Sheet (extraction) » enregistré pour ce client." };
+    } else {
+      result = { text: readSheetAsText_(id) };
+    }
+  } catch (err) {
+    result = { error: "Lecture impossible : " + (err && err.message ? err.message : String(err)) };
+  }
+
+  var payload = JSON.stringify(result);
+  if (e.parameter && e.parameter.callback) {
+    return ContentService
+      .createTextOutput(e.parameter.callback + "(" + payload + ")")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService.createTextOutput(payload).setMimeType(ContentService.MimeType.JSON);
+}
+
+// Sécurité : n'ouvre que les Sheets déjà enregistrés comme "Lien Sheet
+// (extraction)" sur une fiche client — empêche d'utiliser ce endpoint
+// public comme proxy de lecture vers n'importe quel fichier du Drive du coach.
+function isKnownProgrammationSheet_(clientsSheet, id) {
+  if (!clientsSheet) return false;
+  var values = clientsSheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    var stored = extractSheetId_(String(values[i][8] || ""));
+    if (stored && stored === id) return true;
+  }
+  return false;
+}
+
+function extractSheetId_(url) {
+  var m = /\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/.exec(url || "");
+  return m ? m[1] : null;
+}
+
+function readSheetAsText_(id) {
+  var target = SpreadsheetApp.openById(id);
+  var sheet = target.getSheets()[0];
+  var values = sheet.getDataRange().getDisplayValues();
+  var lines = [];
+  for (var i = 0; i < values.length; i++) {
+    var row = values[i].filter(function (c) { return String(c).trim() !== ""; });
+    if (row.length) lines.push(row.join(" | "));
+  }
+  var text = lines.join("\n");
+  return text.length > 6000 ? text.slice(0, 6000) + "\n… (tronqué)" : text;
+}
+
 function formatDate_(v) {
   if (v instanceof Date) {
     return Utilities.formatDate(v, Session.getScriptTimeZone(), "yyyy-MM-dd");
@@ -104,13 +163,13 @@ function upsertClientRow_(sheet, data) {
   var values = sheet.getDataRange().getValues();
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][0]) === String(data.id)) {
-      sheet.getRange(i + 1, 1, 1, 8).setValues([[
-        data.id, data.nom, data.dateDebut, data.avatar, data.objectifs, data.notesGenerales, new Date(), data.programmationUrl || ""
+      sheet.getRange(i + 1, 1, 1, 9).setValues([[
+        data.id, data.nom, data.dateDebut, data.avatar, data.objectifs, data.notesGenerales, new Date(), data.programmationUrl || "", data.programmationEditUrl || ""
       ]]);
       return;
     }
   }
   sheet.appendRow([
-    data.id, data.nom, data.dateDebut, data.avatar, data.objectifs, data.notesGenerales, new Date(), data.programmationUrl || ""
+    data.id, data.nom, data.dateDebut, data.avatar, data.objectifs, data.notesGenerales, new Date(), data.programmationUrl || "", data.programmationEditUrl || ""
   ]);
 }

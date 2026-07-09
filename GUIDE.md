@@ -97,3 +97,41 @@ N'oublie pas de recoller le contenu mis à jour de `Code.gs` dans l'éditeur
 Apps Script et de créer une **nouvelle version** du déploiement
 (`Déployer → Gérer les déploiements → ✏️ → Nouvelle version → Déployer`) —
 l'URL `/exec` ne change pas, mais le code ne se met à jour qu'après ça.
+
+## Extraction du texte de programmation (v4)
+
+En plus de l'affichage visuel, tu peux extraire le texte brut d'un Sheet de
+programmation pour le réutiliser directement dans le Logger — sans retaper
+la séance à la main.
+
+Contrairement à l'affichage (qui a besoin d'un Sheet publié publiquement),
+l'extraction lit le Sheet **directement avec tes propres droits d'accès**
+(le script tourne « en tant que toi ») : le Sheet peut donc rester privé
+pour cette partie-là.
+
+**Mise en place, une fois par client :**
+
+1. Coach Sync → onglet **Clients** → fiche du client → colle le **lien normal
+   d'édition** du Sheet (celui que tu utilises tous les jours, du type
+   `https://docs.google.com/spreadsheets/d/XXXX/edit?usp=sharing`) dans
+   **Lien Sheet (extraction)** → **Enregistrer le client**.
+2. Onglet **Programmation** → sélectionne le client → bouton **Extraire le
+   texte** → le contenu du Sheet apparaît dans une zone modifiable.
+3. Ajuste/coupe le texte pour ne garder que la séance du jour, puis
+   **Envoyer vers Logger** → ça bascule sur l'onglet Logger avec le client
+   sélectionné et le texte prérempli dans « Entraînement du jour ».
+4. Termine de compléter le score/remarques et **Enregistrer la séance**
+   comme d'habitude — ça part sur l'onglet `Séances` du Sheet Coach Sync.
+
+**Sécurité** : ce lien d'extraction est volontairement séparé du lien de
+publication. Il n'est jamais affiché dans une iframe ni rendu public. Le
+script vérifie en plus que le Sheet demandé correspond bien à un lien déjà
+enregistré sur une fiche client, pour empêcher que quelqu'un d'autre utilise
+ce point d'entrée pour lire un autre fichier de ton Drive.
+
+### Mise à jour du Sheet existant (v4)
+
+La colonne `Lien Sheet (extraction)` a été ajoutée en colonne I de l'onglet
+`Clients`. Comme pour la v3, ajoute manuellement l'en-tête si l'onglet
+existait déjà, recolle `Code.gs` dans Apps Script, et publie une **nouvelle
+version** du déploiement.
