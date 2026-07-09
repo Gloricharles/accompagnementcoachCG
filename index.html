@@ -90,6 +90,8 @@
   .section-note{font-size:12px;color:var(--text-dim);line-height:1.6;margin-top:16px;padding:12px;background:var(--bg-raised);border-radius:8px;border:1px solid var(--line);}
   .back-link{color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer;margin-bottom:14px;display:inline-block;}
   .config-warn{background:#2A1A00;border:1px solid #5C3D00;color:#E8B923;padding:12px;border-radius:8px;font-size:12.5px;margin-bottom:16px;line-height:1.6;}
+
+  .programmation-frame{width:100%;height:70vh;border:1px solid var(--line);border-radius:12px;background:#fff;}
 </style>
 </head>
 <body>
@@ -110,6 +112,7 @@
 
     <div class="tabs">
       <div class="tab active" data-view="briefing">Avant séance</div>
+      <div class="tab" data-view="programmation">Programmation</div>
       <div class="tab" data-view="logger">Logger</div>
       <div class="tab" data-view="clients">Clients</div>
       <div class="tab" data-view="settings">Réglages</div>
@@ -119,6 +122,12 @@
       <label>Client</label>
       <select id="briefingSelect"></select>
       <div id="briefingContent"></div>
+    </div>
+
+    <div class="view" id="view-programmation">
+      <label>Client</label>
+      <select id="programmationSelect"></select>
+      <div id="programmationContent"></div>
     </div>
 
     <div class="view" id="view-logger">
@@ -155,6 +164,8 @@
         <textarea id="cObjectifs" placeholder="Objectifs de performance, composition, bien-être..."></textarea>
         <label>Notes générales</label>
         <textarea id="cNotes" placeholder="Contexte, historique, contraintes..."></textarea>
+        <label>Lien programmation <span style="text-transform:none;color:var(--text-dim);">— Sheet du client, publié via Fichier → Partager → Publier sur le Web</span></label>
+        <input type="text" id="cProgrammation" placeholder="https://docs.google.com/spreadsheets/d/e/.../pubhtml">
         <button class="btn" id="saveClientBtn">Enregistrer le client</button>
       </div>
       <div id="clientListWrap">
@@ -251,6 +262,7 @@
     renderClientSelects();
     renderClientList();
     renderBriefing();
+    renderProgrammation();
     if(!fromCache) writeCache(data);
   }
 
@@ -294,6 +306,23 @@
       : `<option value="">Aucun client — ajoute-en un dans l'onglet Clients</option>`;
     $('briefingSelect').innerHTML = opts;
     $('logClient').innerHTML = opts;
+    $('programmationSelect').innerHTML = opts;
+  }
+
+  function renderProgrammation(){
+    const id = $('programmationSelect').value;
+    const wrap = $('programmationContent');
+    const data = state.clients[id];
+    const url = data && data.profile.programmationUrl;
+    if(!data){
+      wrap.innerHTML = `<div class="empty">Sélectionne un client pour voir sa <b>programmation</b>.</div>`;
+      return;
+    }
+    if(!url || !/^https:\/\/docs\.google\.com\//.test(url)){
+      wrap.innerHTML = `<div class="empty">Aucun lien de programmation pour <b>${escapeHtml(data.profile.nom)}</b>.<br>Ajoute-le dans l'onglet Clients (fiche du client → « Lien programmation »).</div>`;
+      return;
+    }
+    wrap.innerHTML = `<iframe class="programmation-frame" src="${escapeHtml(url)}" loading="lazy"></iframe>`;
   }
 
   function renderBriefing(){
@@ -366,6 +395,7 @@
     $('cAvatar').value = d ? (d.profile.avatar || '') : '';
     $('cObjectifs').value = d ? (d.profile.objectifs || '') : '';
     $('cNotes').value = d ? (d.profile.notesGenerales || '') : '';
+    $('cProgrammation').value = d ? (d.profile.programmationUrl || '') : '';
     $('clientForm').style.display = 'block';
     $('clientListWrap').style.display = 'none';
   }
@@ -382,13 +412,14 @@
     const id = editingClientId || uid();
     const profile = {
       id, nom, dateDebut: $('cDateDebut').value, avatar: $('cAvatar').value.trim(),
-      objectifs: $('cObjectifs').value.trim(), notesGenerales: $('cNotes').value.trim()
+      objectifs: $('cObjectifs').value.trim(), notesGenerales: $('cNotes').value.trim(),
+      programmationUrl: $('cProgrammation').value.trim()
     };
     if(!state.clients[id]){ state.clients[id] = { profile, sessions: [] }; state.roster.push({id, nom}); }
     else { state.clients[id].profile = profile; const r = state.roster.find(c=>c.id===id); if(r) r.nom = nom; }
 
     syncWrite({ type:'client', ...profile });
-    renderClientSelects(); renderClientList(); renderBriefing();
+    renderClientSelects(); renderClientList(); renderBriefing(); renderProgrammation();
     $('clientForm').style.display = 'none';
     $('clientListWrap').style.display = 'block';
     showToast('Client enregistré — synchro en cours');
@@ -428,10 +459,12 @@
       tab.classList.add('active');
       $('view-'+tab.dataset.view).classList.add('active');
       if(tab.dataset.view === 'settings') renderConfigWarn();
+      if(tab.dataset.view === 'programmation') renderProgrammation();
     });
   });
 
   $('briefingSelect').addEventListener('change', renderBriefing);
+  $('programmationSelect').addEventListener('change', renderProgrammation);
   $('refreshBtn').addEventListener('click', () => refreshFromSheet(true));
   $('signalWrap').addEventListener('click', () => refreshFromSheet(true));
   document.addEventListener('visibilitychange', () => { if(!document.hidden) refreshFromSheet(false); });

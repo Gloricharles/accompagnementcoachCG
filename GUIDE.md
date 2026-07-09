@@ -61,3 +61,39 @@ Partager → Sur l'écran d'accueil) pour un accès en un tap, comme une vraie a
 3. Ouvre la page sur un deuxième appareil, rafraîchis → vérifie qu'il apparaît.
 4. Vérifie aussi directement dans le Google Sheet que les onglets `Clients`
    et `Séances` se remplissent bien.
+
+## Onglet Programmation (v3)
+
+Chaque client peut avoir son propre Google Sheet de programmation (celui où
+tu construis ses séances). Coach Sync peut l'afficher directement dans
+l'onglet **Programmation**, sans changer d'onglet de navigateur.
+
+**Important** : Google n'autorise l'affichage d'un Sheet dans une page tierce
+que s'il est publié. Le Sheet reste éditable normalement comme aujourd'hui,
+mais devient consultable par toute personne disposant du lien (non listé,
+non indexé, mais plus tout à fait privé). À faire une fois par client dont tu
+veux voir la programmation dans l'app :
+
+1. Ouvre le Sheet de programmation du client (ex. celui de Greg).
+2. `Fichier → Partager → Publier sur le Web`.
+3. Choisis « Document entier », clique **Publier**, confirme.
+4. Copie le lien affiché (il ressemble à
+   `https://docs.google.com/spreadsheets/d/e/2PACX-.../pubhtml`).
+5. Dans Coach Sync, onglet **Clients** → ouvre la fiche du client → colle ce
+   lien dans **Lien programmation** → **Enregistrer le client**.
+
+Si tu mets à jour la mise en page du Sheet plus tard, rien à refaire : le
+lien reste valable, seul le contenu affiché change.
+
+### Mise à jour du Sheet existant (si tu avais déjà des clients avant cette version)
+
+La colonne `Lien programmation` a été ajoutée à la fin de l'onglet `Clients`
+(colonne H). Si ton onglet `Clients` existait déjà avant cette mise à jour,
+ajoute manuellement l'en-tête `Lien programmation` en H1 — sinon les
+prochaines sauvegardes de clients l'ajouteront automatiquement à la bonne
+colonne, seul l'en-tête manque pour que ce soit lisible.
+
+N'oublie pas de recoller le contenu mis à jour de `Code.gs` dans l'éditeur
+Apps Script et de créer une **nouvelle version** du déploiement
+(`Déployer → Gérer les déploiements → ✏️ → Nouvelle version → Déployer`) —
+l'URL `/exec` ne change pas, mais le code ne se met à jour qu'après ça.
