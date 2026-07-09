@@ -140,13 +140,34 @@ version** du déploiement.
 
 Le Logger a un champ **Photo** optionnel (tableau blanc, carnet...). Elle est
 prise directement avec l'appareil photo du téléphone, redimensionnée dans le
-navigateur (pour rester légère), puis envoyée avec la séance. Le script la
-dépose dans un dossier Drive dédié — **BeGlorious Coach Sync — Photos
-séances** — créé automatiquement au premier envoi, et enregistre le lien
-dans une nouvelle colonne `Photo` de l'onglet `Séances`. Ce dossier reste
-privé (accessible uniquement depuis ton propre compte Google), aucune
-publication n'est nécessaire pour cette fonctionnalité. Le lien apparaît
-ensuite en 📷 à côté de la séance concernée dans l'onglet **Avant séance**.
+navigateur (pour rester légère), puis envoyée avec la séance.
+
+Le script essaie d'abord de reproduire ton usage actuel : insérer la photo
+**directement dans le Sheet de programmation du client**, à côté de la
+séance du jour (comme tu le fais à la main aujourd'hui). Pour ça, il :
+
+1. Cherche l'onglet correspondant au mois de la séance (ex. `JUILLET26`,
+   sur le même principe que tes onglets `MAI26` / `AVRIL26`).
+2. Cherche la case « Tableau » la plus proche de la date de la séance dans
+   cet onglet.
+3. Y insère la photo (image flottante, ancrée à cette case).
+
+**C'est du best effort** : comme la mise en page varie d'un client à
+l'autre, ça peut se tromper d'onglet ou de case selon la structure du Sheet.
+Comme il s'agit d'une image flottante (pas une valeur de cellule), rien
+n'est jamais écrasé — si elle atterrit au mauvais endroit, il suffit de la
+faire glisser à la bonne case dans Google Sheets, aucune donnée perdue.
+
+**Filet de sécurité** : si aucune correspondance n'est trouvée (pas de lien
+d'extraction enregistré pour ce client, onglet du mois introuvable, aucune
+case « Tableau » repérée), la photo part automatiquement dans le dossier
+Drive **BeGlorious Coach Sync — Photos séances** à la place, avec un lien
+enregistré dans la colonne `Photo` de l'onglet `Séances` — jamais perdue.
+Ce dossier reste privé (ton compte Google uniquement).
+
+Un badge 📷 apparaît ensuite à côté de la séance dans l'onglet **Avant
+séance** — cliquable si la photo est dans Drive, texte simple si elle est
+intégrée dans la programmation.
 
 **Important** : cette version demande une nouvelle autorisation (accès à
 Drive, en plus de Sheets). Au premier envoi d'une photo (ou au redéploiement

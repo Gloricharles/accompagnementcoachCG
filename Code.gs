@@ -22,7 +22,18 @@ function doPost(e) {
     ]);
     var photoUrl = "";
     if (data.photoBase64) {
-      photoUrl = savePhotoToDrive_(data.photoBase64, data.photoMimeType, data.clientNom, data.date, data.sessionId);
+      var editUrl = getClientProgrammationEditUrl_(ss, data.clientId);
+      var placed = false;
+      if (editUrl) {
+        try {
+          placed = insertPhotoIntoProgrammation_(editUrl, data.photoBase64, data.photoMimeType, data.date);
+        } catch (err) {
+          placed = false;
+        }
+      }
+      photoUrl = placed
+        ? "Intégrée dans la programmation"
+        : savePhotoToDrive_(data.photoBase64, data.photoMimeType, data.clientNom, data.date, data.sessionId);
     }
     sheet2.appendRow([
       data.sessionId, data.clientId, data.clientNom, data.date, data.entrainement,
@@ -145,6 +156,90 @@ function readSheetAsText_(id) {
   }
   var text = lines.join("\n");
   return text.length > 6000 ? text.slice(0, 6000) + "\n… (tronqué)" : text;
+}
+
+function getClientProgrammationEditUrl_(ss, clientId) {
+  var sheet = ss.getSheetByName("Clients");
+  if (!sheet) return "";
+  var values = sheet.getDataRange().getValues();
+  for (var i = 1; i < values.length; i++) {
+    if (String(values[i][0]) === String(clientId)) return String(values[i][8] || "");
+  }
+  return "";
+}
+
+// Best effort : place la photo dans la case "Tableau" du Sheet de
+// programmation la plus proche de la date de séance. Ne modifie aucune
+// valeur de cellule (image flottante ancrée) : en cas de mauvaise case,
+// il suffit de la faire glisser à la main dans Google Sheets, rien n'est
+// écrasé.
+function insertPhotoIntoProgrammation_(editUrl, base64, mimeType, dateStr) {
+  var id = extractSheetId_(editUrl);
+  if (!id) return false;
+  var target = SpreadsheetApp.openById(id);
+  var sheet = pickProgrammationSheet_(target, dateStr);
+  if (!sheet) return false;
+
+  var targetDate = parseIsoDate_(dateStr);
+  var values = sheet.getDataRange().getValues();
+  var best = null; // { row, col, score } — score = écart en jours, Infinity si pas de date trouvée
+
+  for (var r = 0; r < values.length; r++) {
+    for (var c = 0; c < values[r].length; c++) {
+      if (String(values[r][c] || "").trim().toLowerCase() !== "tableau") continue;
+      var score = Infinity;
+      for (var up = Math.max(0, r - 20); up < r; up++) {
+        var d = toDate_(values[up][c]);
+        if (d && targetDate) {
+          var diff = Math.abs(d.getTime() - targetDate.getTime());
+          if (diff < score) score = diff;
+        }
+      }
+      if (!best || score < best.score || (score === Infinity && best.score === Infinity)) {
+        best = { row: r, col: c, score: score };
+      }
+    }
+  }
+  if (!best) return false;
+
+  var bytes = Utilities.base64Decode(base64);
+  var blob = Utilities.newBlob(bytes, mimeType || "image/jpeg", "photo.jpg");
+  sheet.insertImage(blob, best.col + 2, best.row + 1);
+  return true;
+}
+
+function pickProgrammationSheet_(target, dateStr) {
+  var d = parseIsoDate_(dateStr);
+  if (d) {
+    var months = ["JANVIER", "FEVRIER", "MARS", "AVRIL", "MAI", "JUIN", "JUILLET", "AOUT", "SEPTEMBRE", "OCTOBRE", "NOVEMBRE", "DECEMBRE"];
+    var candidate = months[d.getMonth()] + String(d.getFullYear()).slice(-2);
+    var sheets = target.getSheets();
+    for (var i = 0; i < sheets.length; i++) {
+      var name = sheets[i].getName().toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (name.indexOf(candidate) > -1) return sheets[i];
+    }
+  }
+  return target.getActiveSheet() || target.getSheets()[0];
+}
+
+function parseIsoDate_(isoStr) {
+  if (!isoStr) return null;
+  var parts = String(isoStr).split("-");
+  if (parts.length !== 3) return null;
+  return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+}
+
+function toDate_(v) {
+  if (v instanceof Date) return v;
+  if (typeof v === "string") {
+    var m = /^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/.exec(v.trim());
+    if (m) {
+      var day = parseInt(m[1], 10), month = parseInt(m[2], 10) - 1, year = parseInt(m[3], 10);
+      if (year < 100) year += 2000;
+      return new Date(year, month, day);
+    }
+  }
+  return null;
 }
 
 function savePhotoToDrive_(base64, mimeType, clientNom, date, sessionId) {

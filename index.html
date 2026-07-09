@@ -360,6 +360,14 @@
     return (s||'').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
+  function renderPhotoBadge(photoUrl){
+    if(!photoUrl) return '';
+    if(/^https?:\/\//.test(photoUrl)){
+      return `<a class="photo-link" href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener">📷 photo</a>`;
+    }
+    return `<span class="photo-link">📷 ${escapeHtml(photoUrl)}</span>`;
+  }
+
   // ---------- Renders ----------
   function renderClientSelects(){
     const opts = state.roster.length
@@ -464,7 +472,7 @@
         html += `<div class="session-row">
           <div class="session-date">${s.date}</div>
           <div class="session-mid">
-            <div class="session-title">${escapeHtml(s.entrainement)}${s.blessureFlag ? '<span class="flag">!</span>' : ''}${s.photoUrl ? `<a class="photo-link" href="${escapeHtml(s.photoUrl)}" target="_blank" rel="noopener">📷 photo</a>` : ''}</div>
+            <div class="session-title">${escapeHtml(s.entrainement)}${s.blessureFlag ? '<span class="flag">!</span>' : ''}${renderPhotoBadge(s.photoUrl)}</div>
             ${s.remarques ? `<div class="session-remark">${escapeHtml(s.remarques)}</div>` : ''}
           </div>
           <div class="session-score">${s.score}</div>
